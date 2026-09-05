@@ -5,12 +5,12 @@ Salesforce Change Data Capture, Pub/Sub API, Python and Databricks.
 
 ## Goal
 
-Explore how a traditional scheduled Salesforce batch ingestion architecture
+Explore how a traditional scheduled Salesforce Developer Edition  batch ingestion architecture
 can evolve toward a reliable near-real-time event-driven lakehouse.
 
 ## Target Architecture
 
-Salesforce
+Salesforce Developer Edition 
 → Change Data Capture
 → Pub/Sub API
 → Python Consumer
