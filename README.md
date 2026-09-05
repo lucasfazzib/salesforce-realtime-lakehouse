@@ -23,9 +23,12 @@ Salesforce Developer Edition
 ## Current Status
 
 - [x] Salesforce Developer Edition created
-- [ ] Opportunity Change Data Capture enabled
-- [ ] Python environment configured
-- [ ] Salesforce authentication configured
+- [x] Opportunity Change Data Capture enabled
+- [x] Python environment configured
+- [x] Salesforce authentication configured
+- [x] Salesforce REST API connection validated
+- [x] SOQL query against Opportunity validated
+- [x] Test Opportunity created
 - [ ] Pub/Sub connection established
 - [ ] Opportunity CDC event received locally
 - [ ] Databricks ingestion implemented
