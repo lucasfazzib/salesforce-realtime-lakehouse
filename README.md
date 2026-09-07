@@ -29,6 +29,18 @@ Salesforce Developer Edition
 - [x] Salesforce REST API connection validated
 - [x] SOQL query against Opportunity validated
 - [x] Test Opportunity created
-- [ ] Pub/Sub connection established
-- [ ] Opportunity CDC event received locally
+- [x] Pub/Sub connection established
+- [x] Opportunity CDC event received locally
 - [ ] Databricks ingestion implemented
+
+## Local CDC Test
+
+1. Run `./.venv/bin/python -m src.salesforce_cdc.subscriber`.
+2. Edit the test Opportunity in Salesforce.
+3. Change its `StageName` value and save the record.
+4. Observe the CDC event metadata in the terminal.
+
+## Documentation
+
+See the [study guide](docs/README.md) for implementation notes, validation,
+architecture evolution, ingestion strategies, security and operations.
