@@ -95,15 +95,15 @@ payloads, replay IDs, or organization identifiers.
 
 ## Known Limitations
 
-- replay IDs are not persisted;
-- idempotent delivery is not implemented;
+- replay IDs are persisted locally but not in a production-grade state store;
+- duplicate landing is safe, but end-to-end Silver deduplication is not implemented;
 - token renewal and reconnect are not implemented;
 - there is no quarantine path for invalid payloads;
-- events are not written to a landing zone or Databricks.
+- events are written to local landing only, not cloud storage or Databricks.
 
-For production, capacity should advance only after the previous event is
-durably written. Replay state should advance after the durable write. This
-creates at-least-once delivery, so downstream deduplication remains mandatory.
+The local subscriber writes each event before advancing its replay checkpoint.
+This creates at-least-once recovery behavior, so downstream deduplication
+remains mandatory.
 
 ## Official References
 

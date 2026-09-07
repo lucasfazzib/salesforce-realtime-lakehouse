@@ -31,6 +31,9 @@ Salesforce Developer Edition
 - [x] Test Opportunity created
 - [x] Pub/Sub connection established
 - [x] Opportunity CDC event received locally
+- [x] Raw CDC event persistence implemented
+- [x] Replay checkpoint persistence implemented
+- [x] Subscriber recovery from replay ID validated
 - [ ] Databricks ingestion implemented
 
 ## Local CDC Test
@@ -39,6 +42,16 @@ Salesforce Developer Edition
 2. Edit the test Opportunity in Salesforce.
 3. Change its `StageName` value and save the record.
 4. Observe the CDC event metadata in the terminal.
+
+## Local Recovery Test
+
+1. Start the subscriber and change the test Opportunity `StageName`.
+2. Confirm a JSON event appears under `raw_events/opportunity/YYYY/MM/DD/`.
+3. Confirm `checkpoints/opportunity_replay.json` appears.
+4. Stop the subscriber, change `StageName` again, and restart it shortly after.
+5. Confirm the checkpoint is loaded and the missed event is persisted.
+
+Salesforce replay retention is limited, so this validates only a short outage.
 
 ## Documentation
 

@@ -23,6 +23,8 @@ without storing credentials or real Salesforce data.
    networking, observability, replay, and recovery.
 9. [Architecture trade-offs](09-architecture-tradeoffs.md): batch incremental
    ingestion, cumulative Bronze scans, CDC, and a practical hybrid migration.
+10. [Durable landing and replay](10-durable-landing-and-replay.md): atomic raw
+   event persistence, checkpoints, duplicate safety, and restart recovery.
 
 ## Current Scope
 
@@ -32,10 +34,12 @@ The repository currently implements only the Salesforce Pub/Sub foundation:
 - REST/SOQL validation;
 - a TLS connection to Salesforce Pub/Sub API;
 - topic and schema discovery;
-- local receipt and decoding of an Opportunity CDC event.
+- local receipt and decoding of an Opportunity CDC event;
+- local partitioned raw event persistence;
+- a durable local replay checkpoint.
 
-Cloud landing, Auto Loader, Delta tables, replay persistence, and reconciliation
-are future architecture proposals, not implemented features.
+Cloud landing, Auto Loader, Delta tables, and reconciliation are future
+architecture proposals, not implemented features.
 
 ## Documentation Security Rule
 

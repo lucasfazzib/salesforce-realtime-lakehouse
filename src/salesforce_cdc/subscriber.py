@@ -1,12 +1,19 @@
 import io
 import queue
 from datetime import UTC, datetime
+from pathlib import Path
 from typing import Iterator
 
 import avro.io
 import avro.schema
 
 from generated import pubsub_api_pb2
+from src.salesforce_cdc.checkpoint import (
+    DEFAULT_CHECKPOINT_PATH,
+    load_checkpoint,
+    save_checkpoint,
+)
+from src.salesforce_cdc.landing import DEFAULT_LANDING_ROOT, persist_event
 from src.salesforce_cdc.pubsub_client import (
     OPPORTUNITY_CHANGE_TOPIC,
     SalesforcePubSubClient,
@@ -68,7 +75,28 @@ def _format_commit_timestamp(timestamp) -> str:
     return str(timestamp)
 
 
-def _print_event(client: SalesforcePubSubClient, schema_cache: dict, event) -> None:
+def _build_fetch_request(replay_id: bytes | None, event_limit: int):
+    if replay_id is None:
+        return pubsub_api_pb2.FetchRequest(
+            topic_name=OPPORTUNITY_CHANGE_TOPIC,
+            replay_preset=pubsub_api_pb2.LATEST,
+            num_requested=event_limit,
+        )
+    return pubsub_api_pb2.FetchRequest(
+        topic_name=OPPORTUNITY_CHANGE_TOPIC,
+        replay_preset=pubsub_api_pb2.CUSTOM,
+        replay_id=replay_id,
+        num_requested=event_limit,
+    )
+
+
+def _process_event(
+    client: SalesforcePubSubClient,
+    schema_cache: dict,
+    event,
+    landing_root: Path,
+    checkpoint_path: Path,
+) -> None:
     schema_id = event.event.schema_id
     if schema_id not in schema_cache:
         schema_info = client.get_schema(schema_id)
@@ -78,24 +106,48 @@ def _print_event(client: SalesforcePubSubClient, schema_cache: dict, event) -> N
     payload = _decode_payload(schema, event.event.payload)
     header = payload["ChangeEventHeader"]
     changed_fields = _changed_field_names(schema, list(header["changedFields"]))
+    commit_timestamp = _format_commit_timestamp(header["commitTimestamp"])
 
     print("CDC event received")
     print(f"Record IDs: {', '.join(header['recordIds'])}")
     print(f"Change type: {header['changeType']}")
     print(f"Changed fields: {', '.join(changed_fields) or '(none)'}")
-    print(f"Commit timestamp: {_format_commit_timestamp(header['commitTimestamp'])}")
+    print(f"Commit timestamp: {commit_timestamp}")
     print(f"Schema ID: {schema_id}")
 
-
-def subscribe(event_limit: int = EVENT_LIMIT) -> None:
-    request_queue: queue.Queue = queue.Queue()
-    request_queue.put(
-        pubsub_api_pb2.FetchRequest(
-            topic_name=OPPORTUNITY_CHANGE_TOPIC,
-            replay_preset=pubsub_api_pb2.LATEST,
-            num_requested=event_limit,
-        )
+    landing_result = persist_event(
+        replay_id=event.replay_id,
+        schema_id=schema_id,
+        record_ids=list(header["recordIds"]),
+        change_type=header["changeType"],
+        changed_fields=changed_fields,
+        commit_timestamp=commit_timestamp,
+        topic=OPPORTUNITY_CHANGE_TOPIC,
+        payload=payload,
+        landing_root=landing_root,
     )
+    if landing_result.created:
+        print(f"Event persisted: {landing_result.path}")
+    else:
+        print(f"Duplicate event already persisted: {landing_result.path}")
+
+    save_checkpoint(event.replay_id, checkpoint_path, OPPORTUNITY_CHANGE_TOPIC)
+    print(f"Checkpoint updated: {checkpoint_path}")
+
+
+def subscribe(
+    event_limit: int = EVENT_LIMIT,
+    landing_root: Path = DEFAULT_LANDING_ROOT,
+    checkpoint_path: Path = DEFAULT_CHECKPOINT_PATH,
+) -> None:
+    replay_id = load_checkpoint(checkpoint_path, OPPORTUNITY_CHANGE_TOPIC)
+    if replay_id is None:
+        print("No checkpoint found. Starting from LATEST.")
+    else:
+        print("Checkpoint loaded. Resuming from saved replay ID.")
+
+    request_queue: queue.Queue = queue.Queue()
+    request_queue.put(_build_fetch_request(replay_id, event_limit))
 
     def request_stream() -> Iterator:
         while (request := request_queue.get()) is not None:
@@ -116,7 +168,13 @@ def subscribe(event_limit: int = EVENT_LIMIT) -> None:
         try:
             for response in responses:
                 for event in response.events:
-                    _print_event(client, schema_cache, event)
+                    _process_event(
+                        client,
+                        schema_cache,
+                        event,
+                        landing_root,
+                        checkpoint_path,
+                    )
                     received += 1
                     if received >= event_limit:
                         return

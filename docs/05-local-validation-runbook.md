@@ -74,8 +74,17 @@ In Salesforce:
 4. return to the terminal.
 
 Success means the terminal reports `Change type: UPDATE`, includes `StageName`
-among the changed fields, and prints a UTC commit timestamp. Press `Ctrl+C` to
-stop after validation.
+among the changed fields, prints a UTC commit timestamp, persists an event under
+`raw_events/opportunity/YYYY/MM/DD/`, and updates
+`checkpoints/opportunity_replay.json`.
+
+For restart recovery:
+
+1. stop the subscriber with `Ctrl+C`;
+2. change `StageName` again while it is stopped;
+3. restart the subscriber before Salesforce replay retention expires;
+4. verify `Checkpoint loaded. Resuming from saved replay ID.` appears;
+5. verify the missed event is persisted without overwriting the first event.
 
 ## 5. Pre-Commit Safety Checks
 
@@ -118,8 +127,8 @@ Confirm the exact `/data/OpportunityChangeEvent` topic and CDC configuration.
 
 ### The Stream Keeps Waiting
 
-This is normal when no new event exists. Because the preset is `LATEST`, start
-the subscriber before saving the Salesforce change.
+This is normal when no new event exists. A first run starts at `LATEST`; after a
+checkpoint exists, the subscriber resumes after the saved replay ID.
 
 ### StageName Is Missing
 
