@@ -25,6 +25,8 @@ without storing credentials or real Salesforce data.
    ingestion, cumulative Bronze scans, CDC, and a practical hybrid migration.
 10. [Durable landing and replay](10-durable-landing-and-replay.md): atomic raw
    event persistence, checkpoints, duplicate safety, and restart recovery.
+11. [Databricks Bronze ingestion](11-databricks-bronze-ingestion.md): dedicated
+   Unity Catalog setup, Volume upload, DAB deployment, and Auto Loader Bronze.
 
 ## Current Scope
 
@@ -36,10 +38,12 @@ The repository currently implements only the Salesforce Pub/Sub foundation:
 - topic and schema discovery;
 - local receipt and decoding of an Opportunity CDC event;
 - local partitioned raw event persistence;
-- a durable local replay checkpoint.
+- a durable local replay checkpoint;
+- a DAB-managed serverless Auto Loader Job;
+- a Unity Catalog Bronze Delta table with raw CDC payloads.
 
-Cloud landing, Auto Loader, Delta tables, and reconciliation are future
-architecture proposals, not implemented features.
+Silver transformations, reconciliation, dbt, and deployment automation remain
+future phases.
 
 ## Documentation Security Rule
 

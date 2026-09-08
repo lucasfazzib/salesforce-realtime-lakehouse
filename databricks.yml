@@ -5,15 +5,26 @@
 bundle:
   name: salesforce-realtime-lakehouse
 
+include:
+  - resources/*.yml
+
+variables:
+  catalog:
+    description: Unity Catalog catalog for the project
+    default: salesforce_realtime_lakehouse
+  schema:
+    description: Unity Catalog schema for Bronze assets
+    default: bronze
+  volume:
+    description: Unity Catalog Volume for Salesforce CDC landing and state
+    default: salesforce_cdc_landing
+  bronze_table:
+    description: Bronze Delta table name
+    default: opportunity_cdc
+
 targets:
   dev:
     mode: development
     default: true
     workspace:
       host: https://dbc-403e1b97-45df.cloud.databricks.com
-
-  ## Optionally, there could be 'staging' or 'prod' targets here.
-  #
-  # prod:
-  #   workspace:
-  #     host: https://dbc-403e1b97-45df.cloud.databricks.com

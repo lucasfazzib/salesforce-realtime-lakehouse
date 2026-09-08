@@ -34,7 +34,12 @@ Salesforce Developer Edition
 - [x] Raw CDC event persistence implemented
 - [x] Replay checkpoint persistence implemented
 - [x] Subscriber recovery from replay ID validated
-- [ ] Databricks ingestion implemented
+- [x] Databricks Volume landing configured
+- [x] DAB validation successful
+- [x] DAB deployment successful
+- [x] Auto Loader Bronze ingestion implemented
+- [x] Salesforce CDC event ingested into Bronze Delta
+- [x] Databricks ingestion implemented
 
 ## Local CDC Test
 
@@ -52,6 +57,14 @@ Salesforce Developer Edition
 5. Confirm the checkpoint is loaded and the missed event is persisted.
 
 Salesforce replay retention is limited, so this validates only a short outage.
+
+## Databricks Bronze Test
+
+1. Generate a Salesforce Opportunity CDC event with the local subscriber.
+2. Confirm the raw JSON exists under `raw_events/opportunity/YYYY/MM/DD/`.
+3. Run `./.venv/bin/python -m src.salesforce_cdc.databricks_upload`.
+4. Run `databricks bundle run -t dev bronze_ingestion`.
+5. Query `salesforce_realtime_lakehouse.bronze.opportunity_cdc`.
 
 ## Documentation
 
