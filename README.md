@@ -40,6 +40,10 @@ Salesforce Developer Edition
 - [x] Auto Loader Bronze ingestion implemented
 - [x] Salesforce CDC event ingested into Bronze Delta
 - [x] Databricks ingestion implemented
+- [x] Silver Opportunity current-state table implemented
+- [x] Salesforce UPDATE reflected in Silver
+- [x] Silver idempotent rerun validated
+- [ ] Salesforce DELETE semantics validated
 
 ## Local CDC Test
 
@@ -65,6 +69,14 @@ Salesforce replay retention is limited, so this validates only a short outage.
 3. Run `./.venv/bin/python -m src.salesforce_cdc.databricks_upload`.
 4. Run `databricks bundle run -t dev bronze_ingestion`.
 5. Query `salesforce_realtime_lakehouse.bronze.opportunity_cdc`.
+
+## Databricks Silver Test
+
+1. Change one Opportunity field in Salesforce and run the local-to-Bronze flow.
+2. Run `databricks bundle run -t dev silver_opportunity`.
+3. Query `salesforce_realtime_lakehouse.silver.opportunity`.
+4. Confirm the changed field was updated and unchanged fields were preserved.
+5. Rerun the Silver job and confirm there is still one row per Opportunity.
 
 ## Documentation
 

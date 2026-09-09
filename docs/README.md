@@ -27,6 +27,8 @@ without storing credentials or real Salesforce data.
    event persistence, checkpoints, duplicate safety, and restart recovery.
 11. [Databricks Bronze ingestion](11-databricks-bronze-ingestion.md): dedicated
    Unity Catalog setup, Volume upload, DAB deployment, and Auto Loader Bronze.
+12. [Opportunity Silver current state](12-silver-opportunity-current-state.md):
+   CDC normalization, field-level updates, ordering, MERGE, and soft deletes.
 
 ## Current Scope
 
@@ -40,10 +42,10 @@ The repository currently implements only the Salesforce Pub/Sub foundation:
 - local partitioned raw event persistence;
 - a durable local replay checkpoint;
 - a DAB-managed serverless Auto Loader Job;
-- a Unity Catalog Bronze Delta table with raw CDC payloads.
+- a Unity Catalog Bronze Delta table with raw CDC payloads;
+- a DAB-managed Opportunity Silver current-state table.
 
-Silver transformations, reconciliation, dbt, and deployment automation remain
-future phases.
+Reconciliation, dbt, Gold, and deployment automation remain future phases.
 
 ## Documentation Security Rule
 

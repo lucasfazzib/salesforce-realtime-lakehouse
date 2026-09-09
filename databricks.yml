@@ -21,6 +21,12 @@ variables:
   bronze_table:
     description: Bronze Delta table name
     default: opportunity_cdc
+  silver_schema:
+    description: Unity Catalog schema for Silver assets
+    default: silver
+  silver_table:
+    description: Silver Opportunity current-state table name
+    default: opportunity
 
 targets:
   dev:
