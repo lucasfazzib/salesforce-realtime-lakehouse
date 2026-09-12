@@ -47,6 +47,10 @@ Salesforce Developer Edition
 - [x] Lakeflow Bronze to Silver orchestration implemented
 - [x] DAB Lakeflow workflow deployed
 - [x] End-to-end Bronze to Silver workflow validated
+- [x] DEV and PROD-SIMULATED bundle targets configured
+- [ ] GitHub pull request CI validated
+- [ ] GitHub DEV deployment validated
+- [ ] GitHub PROD-SIMULATED deployment validated
 
 ## Local CDC Test
 
@@ -88,6 +92,20 @@ Salesforce replay retention is limited, so this validates only a short outage.
 3. Run `./.venv/bin/python -m src.salesforce_cdc.databricks_upload`.
 4. Run `databricks bundle run -t dev salesforce_cdc_pipeline`.
 5. Validate Bronze history and the Silver current state with SQL.
+
+## CI/CD
+
+```text
+feature/* -> PR to dev -> CI -> merge -> automatic DEV deployment
+dev      -> PR to main -> CI -> merge -> PROD-SIMULATED deployment
+```
+
+Both DAB targets use the same Databricks Free Edition workspace. DEV preserves
+the validated `bronze` and `silver` schemas; PROD-SIMULATED uses `bronze_prod`
+and `silver_prod`, a separate Volume, separate DAB state, and distinct Job
+names. This is logical isolation for learning, not a production security
+boundary. See the [CI/CD guide](docs/14-github-actions-cicd.md) for GitHub
+Environment, authentication, branch protection, and setup instructions.
 
 ## Documentation
 

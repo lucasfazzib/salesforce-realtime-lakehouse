@@ -3,10 +3,9 @@ import os
 import requests
 from dotenv import load_dotenv
 
-load_dotenv()
-
 
 def get_access_token() -> dict:
+    load_dotenv()
     login_url = os.environ["SALESFORCE_LOGIN_URL"]
     client_id = os.environ["SALESFORCE_CLIENT_ID"]
     client_secret = os.environ["SALESFORCE_CLIENT_SECRET"]

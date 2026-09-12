@@ -1,0 +1,58 @@
+name: CI
+
+on:
+  pull_request:
+    branches:
+      - dev
+      - main
+
+permissions:
+  contents: read
+
+jobs:
+  python-tests:
+    name: Python tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: |
+            requirements.txt
+            requirements-dev.txt
+
+      - name: Install dependencies
+        run: python -m pip install --requirement requirements-dev.txt
+
+      - name: Run tests
+        run: python -m pytest --quiet
+
+  bundle-validation:
+    name: Validate ${{ github.base_ref == 'main' && 'prod' || 'dev' }} bundle
+    needs: python-tests
+    if: github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      BUNDLE_TARGET: ${{ github.base_ref == 'main' && 'prod' || 'dev' }}
+      DATABRICKS_AUTH_TYPE: pat
+      DATABRICKS_HOST: ${{ secrets.DATABRICKS_HOST }}
+      DATABRICKS_TOKEN: ${{ secrets.DATABRICKS_TOKEN }}
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Install Databricks CLI
+        uses: databricks/setup-cli@v1.16.1
+
+      - name: Verify Databricks credentials are configured
+        run: test -n "$DATABRICKS_HOST" && test -n "$DATABRICKS_TOKEN"
+
+      - name: Validate bundle
+        run: databricks bundle validate --target "$BUNDLE_TARGET"

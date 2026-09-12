@@ -31,6 +31,8 @@ without storing credentials or real Salesforce data.
    CDC normalization, field-level updates, ordering, MERGE, and soft deletes.
 13. [Lakeflow orchestration and DELETE](13-lakeflow-orchestration-and-delete.md):
    Bronze-to-Silver task dependency and real Salesforce DELETE validation.
+14. [GitHub Actions CI/CD](14-github-actions-cicd.md): branch promotion,
+   logical bundle targets, secure authentication, validation, and deployment.
 
 ## Current Scope
 
@@ -46,9 +48,11 @@ The repository currently implements only the Salesforce Pub/Sub foundation:
 - a DAB-managed serverless Auto Loader Job;
 - a Unity Catalog Bronze Delta table with raw CDC payloads;
 - a DAB-managed Opportunity Silver current-state table;
-- a DAB-managed Bronze-to-Silver Lakeflow workflow.
+- a DAB-managed Bronze-to-Silver Lakeflow workflow;
+- GitHub Actions definitions for CI and target-specific deployment.
 
-Reconciliation, dbt, Gold, and deployment automation remain future phases.
+The workflows still require GitHub Environments and encrypted credentials
+before they can run. Reconciliation, dbt, and Gold remain future phases.
 
 ## Documentation Security Rule
 

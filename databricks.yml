@@ -34,3 +34,24 @@ targets:
     default: true
     workspace:
       host: https://dbc-403e1b97-45df.cloud.databricks.com
+      root_path: /Workspace/Users/${workspace.current_user.userName}/.bundle/${bundle.name}/${bundle.target}
+    variables:
+      schema: bronze
+      volume: salesforce_cdc_landing
+      silver_schema: silver
+  prod:
+    mode: production
+    workspace:
+      host: https://dbc-403e1b97-45df.cloud.databricks.com
+      root_path: /Workspace/production/.bundle/${bundle.name}/${bundle.target}
+    presets:
+      name_prefix: "[PROD-SIMULATED] "
+      tags:
+        environment: prod-simulated
+    variables:
+      schema: bronze_prod
+      volume: salesforce_cdc_landing_prod
+      silver_schema: silver_prod
+    permissions:
+      - level: CAN_MANAGE
+        user_name: ${workspace.current_user.userName}

@@ -1,0 +1,43 @@
+name: Deploy DEV
+
+on:
+  push:
+    branches:
+      - dev
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: databricks-development
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    name: Deploy Databricks DEV
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    environment: development
+    env:
+      DATABRICKS_AUTH_TYPE: pat
+      DATABRICKS_HOST: ${{ secrets.DATABRICKS_HOST }}
+      DATABRICKS_TOKEN: ${{ secrets.DATABRICKS_TOKEN }}
+    steps:
+      - name: Enforce dev branch
+        run: test "$GITHUB_REF" = "refs/heads/dev"
+
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Install Databricks CLI
+        uses: databricks/setup-cli@v1.16.1
+
+      - name: Verify Databricks credentials are configured
+        run: test -n "$DATABRICKS_HOST" && test -n "$DATABRICKS_TOKEN"
+
+      - name: Validate DEV bundle
+        run: databricks bundle validate --target dev
+
+      - name: Deploy DEV bundle
+        run: databricks bundle deploy --target dev
