@@ -1,113 +1,311 @@
 # Salesforce Real-Time Lakehouse
 
-A production-inspired near-real-time Salesforce ingestion project using
-Salesforce Change Data Capture, Pub/Sub API, Python and Databricks.
+A production-inspired Salesforce Change Data Capture pipeline built with
+Python, Salesforce Pub/Sub API, Databricks Auto Loader, Delta Lake, Lakeflow
+Jobs, Databricks Asset Bundles, and GitHub Actions.
 
-## Goal
+The project demonstrates how scheduled Salesforce extraction can evolve into a
+recoverable near-real-time lakehouse while preserving batch-based bootstrap and
+reconciliation as complementary future mechanisms.
 
-Explore how a traditional scheduled Salesforce Developer Edition  batch ingestion architecture
-can evolve toward a reliable near-real-time event-driven lakehouse.
+## Architecture
 
-## Target Architecture
+```mermaid
+flowchart LR
+		SF[Salesforce Opportunity CDC]
+		PS[Salesforce Pub/Sub API]
+		C[Local Python subscriber]
+		R[Local raw JSON landing]
+		RP[(Salesforce replay checkpoint)]
+		V[Unity Catalog Volume]
+		AL[Auto Loader]
+		B[(Bronze Delta history)]
+		S[(Silver Opportunity current state)]
 
-Salesforce Developer Edition 
-→ Change Data Capture
-→ Pub/Sub API
-→ Python Consumer
-→ Landing
-→ Databricks Auto Loader
-→ Bronze
-→ Silver
-→ Gold
+		SF --> PS --> C
+		C --> R
+		C --> RP
+		R -->|Databricks CLI OAuth upload| V
+		V --> AL --> B
+		B -->|CDC normalization and MERGE| S
+```
 
-## Current Status
+Reliability is split across two independent checkpoints:
 
-- [x] Salesforce Developer Edition created
-- [x] Opportunity Change Data Capture enabled
-- [x] Python environment configured
-- [x] Salesforce authentication configured
-- [x] Salesforce REST API connection validated
-- [x] SOQL query against Opportunity validated
-- [x] Test Opportunity created
-- [x] Pub/Sub connection established
-- [x] Opportunity CDC event received locally
-- [x] Raw CDC event persistence implemented
-- [x] Replay checkpoint persistence implemented
-- [x] Subscriber recovery from replay ID validated
-- [x] Databricks Volume landing configured
-- [x] DAB validation successful
-- [x] DAB deployment successful
-- [x] Auto Loader Bronze ingestion implemented
-- [x] Salesforce CDC event ingested into Bronze Delta
-- [x] Databricks ingestion implemented
-- [x] Silver Opportunity current-state table implemented
-- [x] Salesforce UPDATE reflected in Silver
-- [x] Silver idempotent rerun validated
-- [x] Salesforce DELETE semantics validated
-- [x] Lakeflow Bronze to Silver orchestration implemented
-- [x] DAB Lakeflow workflow deployed
-- [x] End-to-end Bronze to Silver workflow validated
-- [x] DEV and PROD-SIMULATED bundle targets configured
-- [x] GitHub pull request CI validated
-- [x] GitHub DEV deployment validated
-- [x] GitHub PROD-SIMULATED deployment validated
+- the Salesforce replay checkpoint resumes the source subscription;
+- the Auto Loader checkpoint tracks files committed to Bronze.
 
-## Local CDC Test
+The main Lakeflow Job enforces:
 
-1. Run `./.venv/bin/python -m src.salesforce_cdc.subscriber`.
-2. Edit the test Opportunity in Salesforce.
-3. Change its `StageName` value and save the record.
-4. Observe the CDC event metadata in the terminal.
+```text
+Bronze ingestion -> successful completion -> Silver current-state merge
+```
 
-## Local Recovery Test
+## Implemented Capabilities
 
-1. Start the subscriber and change the test Opportunity `StageName`.
-2. Confirm a JSON event appears under `raw_events/opportunity/YYYY/MM/DD/`.
-3. Confirm `checkpoints/opportunity_replay.json` appears.
-4. Stop the subscriber, change `StageName` again, and restart it shortly after.
-5. Confirm the checkpoint is loaded and the missed event is persisted.
+### Salesforce Source
 
-Salesforce replay retention is limited, so this validates only a short outage.
+- [x] OAuth Client Credentials authentication
+- [x] REST API and SOQL validation
+- [x] Opportunity Change Data Capture
+- [x] Official Pub/Sub API protobuf and generated Python gRPC stubs
+- [x] TLS Pub/Sub connection and topic/schema discovery
+- [x] Avro payload decoding and `changedFields` bitmap expansion
+- [x] CREATE, UPDATE, and DELETE event receipt
 
-## Databricks Bronze Test
+### Durable Local Ingestion
 
-1. Generate a Salesforce Opportunity CDC event with the local subscriber.
-2. Confirm the raw JSON exists under `raw_events/opportunity/YYYY/MM/DD/`.
-3. Run `./.venv/bin/python -m src.salesforce_cdc.databricks_upload`.
-4. Run `databricks bundle run -t dev bronze_ingestion`.
-5. Query `salesforce_realtime_lakehouse.bronze.opportunity_cdc`.
+- [x] Partitioned raw JSON landing under `raw_events/opportunity/YYYY/MM/DD/`
+- [x] Atomic event writes with deterministic replay-based filenames
+- [x] Base64 replay ID serialization
+- [x] Atomic replay checkpoint persistence
+- [x] Subscriber recovery with `ReplayPreset.CUSTOM`
+- [x] Duplicate landing protection
 
-## Databricks Silver Test
+### Databricks Lakehouse
 
-1. Change one Opportunity field in Salesforce and run the local-to-Bronze flow.
-2. Run `databricks bundle run -t dev silver_opportunity`.
-3. Query `salesforce_realtime_lakehouse.silver.opportunity`.
-4. Confirm the changed field was updated and unchanged fields were preserved.
-5. Rerun the Silver job and confirm there is still one row per Opportunity.
+- [x] Dedicated Unity Catalog catalog, schemas, and managed Volumes
+- [x] OAuth-authenticated local upload to the Databricks Volume
+- [x] Explicit Bronze schema with raw payload stored as `VARIANT`
+- [x] Auto Loader ingestion with independent schema/checkpoint state
+- [x] Idempotent Bronze reruns
+- [x] Opportunity Silver current-state Delta table
+- [x] Field-level partial UPDATE semantics
+- [x] Ordering by commit timestamp, commit number, and sequence number
+- [x] Soft DELETE with last-known business values preserved
+- [x] Idempotent Delta MERGE reruns
 
-## Lakeflow Workflow Test
+### Delivery And Operations
 
-1. Start the local subscriber and create, update, or delete an Opportunity.
-2. Confirm the CDC event is persisted under `raw_events/opportunity/`.
-3. Run `./.venv/bin/python -m src.salesforce_cdc.databricks_upload`.
-4. Run `databricks bundle run -t dev salesforce_cdc_pipeline`.
-5. Validate Bronze history and the Silver current state with SQL.
+- [x] DAB-managed standalone Bronze and Silver Jobs
+- [x] DAB-managed Bronze-to-Silver Lakeflow orchestration
+- [x] Logical DEV and PROD-SIMULATED targets
+- [x] Pull request CI with deterministic Python tests and target validation
+- [x] Automatic DEV deployment from `dev`
+- [x] Automatic PROD-SIMULATED deployment from `main`
+
+## Repository Structure
+
+```text
+.
+|-- .github/workflows/          # CI, DEV deploy, PROD-SIMULATED deploy
+|-- docs/                       # Architecture, operations, and study guides
+|-- generated/                  # Generated Salesforce protobuf/gRPC modules
+|-- proto/                      # Official Salesforce Pub/Sub API contract
+|-- resources/                  # Databricks Asset Bundle Job resources
+|-- src/
+|   |-- databricks/             # Bronze and Silver Spark workloads
+|   `-- salesforce_cdc/         # Auth, Pub/Sub, landing, replay, upload
+|-- tests/                      # Deterministic unit tests
+|-- databricks.yml              # Bundle variables and environment targets
+|-- requirements.txt            # Runtime dependencies
+`-- requirements-dev.txt        # Test dependencies
+```
+
+## Data Layers
+
+### Local Raw Event
+
+Each persisted JSON event contains:
+
+```text
+replay_id, schema_id, record_ids, change_type, changed_fields,
+commit_timestamp, received_at, topic, payload
+```
+
+The full decoded CDC payload is preserved. Binary values use reversible Base64
+encoding. Credentials and Pub/Sub authentication metadata are never persisted.
+
+### Bronze
+
+```text
+salesforce_realtime_lakehouse.bronze.opportunity_cdc
+```
+
+Bronze preserves the CDC envelope and raw payload, adding `_source_file`,
+`_ingested_at`, and `_rescued_data`. The payload uses Databricks `VARIANT` to
+tolerate additive Salesforce schema changes without aggressively flattening
+source history.
+
+### Silver
+
+```text
+salesforce_realtime_lakehouse.silver.opportunity
+```
+
+Silver stores one current known row per Opportunity. UPDATE events change only
+fields named in `changed_fields`; omitted fields retain their prior values.
+DELETE is modeled as a soft delete using `is_deleted` and `deleted_at`.
+
+Because the project began from CDC rather than a full initial snapshot, fields
+never observed in CREATE or UPDATE history can remain null. Snapshot bootstrap
+and reconciliation are intentionally deferred.
+
+## Prerequisites
+
+- Python 3.12 or newer
+- a Salesforce org with Opportunity CDC enabled
+- a Salesforce integration application using OAuth Client Credentials
+- Databricks CLI authenticated locally with OAuth
+- Databricks Free Edition or another Unity Catalog-enabled workspace
+- access to create schemas, managed Volumes, Jobs, and Delta tables
+
+Create a local virtual environment and install dependencies:
+
+```bash
+python3 -m venv .venv
+./.venv/bin/python -m pip install --requirement requirements-dev.txt
+```
+
+Copy `.env.example` to `.env` and populate it locally. Never commit `.env` or
+paste its contents into logs, issues, screenshots, or chat.
+
+## Local Salesforce CDC
+
+Validate authentication, REST, and Pub/Sub access:
+
+```bash
+./.venv/bin/python -m src.salesforce_cdc.auth
+./.venv/bin/python -m src.salesforce_cdc.rest_client
+./.venv/bin/python -m src.salesforce_cdc.pubsub_client
+```
+
+Start the durable subscriber:
+
+```bash
+./.venv/bin/python -u -m src.salesforce_cdc.subscriber
+```
+
+Change an Opportunity in Salesforce. The subscriber decodes the CDC event,
+writes the raw JSON atomically, and advances the replay checkpoint only after
+the event is durable.
+
+## Databricks Workflow
+
+Upload local event files while preserving date partitions:
+
+```bash
+./.venv/bin/python -m src.salesforce_cdc.databricks_upload
+```
+
+Validate, deploy, and run the development workflow:
+
+```bash
+databricks bundle validate --target dev
+databricks bundle deploy --target dev
+databricks bundle run --target dev salesforce_cdc_pipeline
+```
+
+Standalone Jobs remain available for focused debugging:
+
+```bash
+databricks bundle run --target dev bronze_ingestion
+databricks bundle run --target dev silver_opportunity
+```
+
+Validate the resulting tables:
+
+```sql
+SELECT COUNT(*)
+FROM salesforce_realtime_lakehouse.bronze.opportunity_cdc;
+
+SELECT
+	opportunity_id,
+	name,
+	stage_name,
+	amount,
+	close_date,
+	is_deleted,
+	last_change_type,
+	last_commit_timestamp,
+	updated_at
+FROM salesforce_realtime_lakehouse.silver.opportunity
+ORDER BY updated_at DESC;
+```
+
+## Databricks Environments
+
+DEV and PROD-SIMULATED share one physical Databricks Free Edition workspace but
+use separate logical namespaces and DAB state:
+
+| Setting | DEV | PROD-SIMULATED |
+|---|---|---|
+| DAB target | `dev` | `prod` |
+| deployment mode | `development` | `production` |
+| Bronze schema | `bronze` | `bronze_prod` |
+| Silver schema | `silver` | `silver_prod` |
+| landing Volume | `salesforce_cdc_landing` | `salesforce_cdc_landing_prod` |
+| Job prefix | `[dev <user>]` | `[PROD-SIMULATED]` |
+| bundle state | user-scoped DEV path | dedicated production path |
+
+This is logical isolation for CI/CD learning, not a true production security
+boundary. Real production would normally use separate workspaces/accounts,
+service principals, storage controls, networking, quotas, and audit policies.
 
 ## CI/CD
 
 ```text
 feature/* -> PR to dev -> CI -> merge -> automatic DEV deployment
-dev      -> PR to main -> CI -> merge -> PROD-SIMULATED deployment
+dev       -> PR to main -> CI -> merge -> PROD-SIMULATED deployment
 ```
 
-Both DAB targets use the same Databricks Free Edition workspace. DEV preserves
-the validated `bronze` and `silver` schemas; PROD-SIMULATED uses `bronze_prod`
-and `silver_prod`, a separate Volume, separate DAB state, and distinct Job
-names. This is logical isolation for learning, not a production security
-boundary. See the [CI/CD guide](docs/14-github-actions-cicd.md) for GitHub
-Environment, authentication, branch protection, and setup instructions.
+Pull request CI runs deterministic tests and validates the matching DAB target.
+CI never deploys or runs Salesforce integration tests. Deployment workflows
+validate and deploy bundle resources but do not execute the data pipeline.
+
+The current Free Edition account cannot configure the account-level federation
+policy required for GitHub OIDC. GitHub Actions therefore uses a short-lived PAT
+stored only in encrypted GitHub repository/environment secrets as a lab
+fallback. OIDC with a dedicated service principal remains the preferred model
+for a full Databricks account.
+
+See [GitHub Actions CI/CD](docs/14-github-actions-cicd.md) for branch rules,
+GitHub Environments, authentication setup, and promotion tests.
+
+## Testing
+
+Run the deterministic local suite without Salesforce or Databricks runtime:
+
+```bash
+./.venv/bin/python -m pytest --quiet
+```
+
+Validate both bundle targets:
+
+```bash
+databricks bundle validate --target dev
+databricks bundle validate --target prod
+```
+
+The suite covers replay encoding, atomic checkpoints, deterministic event
+paths, duplicate landing, replay request selection, upload path mapping, Bronze
+schema helpers, Silver MERGE semantics, and credential-free imports.
+
+## Security
+
+- `.env`, `.databrickscfg`, `raw_events/`, `checkpoints/`, and `logs/` are
+	ignored and absent from Git history.
+- Salesforce and Databricks credentials are supplied only at runtime.
+- GitHub Actions uses encrypted secrets; no token is present in workflow YAML.
+- TLS certificate verification remains enabled.
+- Event payloads and replay IDs are not printed by Databricks validation jobs.
+- The workspace host in `databricks.yml` is configuration, not a credential.
+
+## Known Limitations And Next Steps
+
+- Local raw landing is not resilient to machine loss.
+- One JSON file per event creates small-file overhead at scale.
+- The uploader is manually invoked and reuploads deterministic paths.
+- Silver currently scans available Bronze history before applying an idempotent
+	MERGE; incremental Silver progress is a future optimization.
+- CDC-only bootstrap can leave never-observed Opportunity fields null.
+- PROD-SIMULATED is logical isolation inside one Free Edition workspace.
+- PAT authentication is a temporary CI/CD lab fallback.
+- Initial snapshot, reconciliation, Gold, dbt, monitoring, and cost controls are
+	future phases.
 
 ## Documentation
 
-See the [study guide](docs/README.md) for implementation notes, validation,
-architecture evolution, ingestion strategies, security and operations.
+The [study guide](docs/README.md) contains detailed implementation notes,
+validation runbooks, architecture trade-offs, security guidance, and CI/CD
+setup instructions.
