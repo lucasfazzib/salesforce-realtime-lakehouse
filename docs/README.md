@@ -29,6 +29,8 @@ without storing credentials or real Salesforce data.
    Unity Catalog setup, Volume upload, DAB deployment, and Auto Loader Bronze.
 12. [Opportunity Silver current state](12-silver-opportunity-current-state.md):
    CDC normalization, field-level updates, ordering, MERGE, and soft deletes.
+13. [Lakeflow orchestration and DELETE](13-lakeflow-orchestration-and-delete.md):
+   Bronze-to-Silver task dependency and real Salesforce DELETE validation.
 
 ## Current Scope
 
@@ -43,7 +45,8 @@ The repository currently implements only the Salesforce Pub/Sub foundation:
 - a durable local replay checkpoint;
 - a DAB-managed serverless Auto Loader Job;
 - a Unity Catalog Bronze Delta table with raw CDC payloads;
-- a DAB-managed Opportunity Silver current-state table.
+- a DAB-managed Opportunity Silver current-state table;
+- a DAB-managed Bronze-to-Silver Lakeflow workflow.
 
 Reconciliation, dbt, Gold, and deployment automation remain future phases.
 

@@ -1,0 +1,45 @@
+resources:
+  jobs:
+    salesforce_cdc_pipeline:
+      name: salesforce-cdc-bronze-to-silver
+      description: Run Salesforce CDC Bronze ingestion before Silver current-state merge
+      max_concurrent_runs: 1
+      tasks:
+        - task_key: ingest_opportunity_cdc
+          spark_python_task:
+            python_file: ../src/databricks/bronze_ingestion.py
+            parameters:
+              - --catalog
+              - ${var.catalog}
+              - --schema
+              - ${var.schema}
+              - --volume
+              - ${var.volume}
+              - --table
+              - ${var.bronze_table}
+          environment_key: default
+          max_retries: 2
+          min_retry_interval_millis: 30000
+        - task_key: merge_opportunity_current_state
+          depends_on:
+            - task_key: ingest_opportunity_cdc
+          spark_python_task:
+            python_file: ../src/databricks/silver_opportunity.py
+            parameters:
+              - --catalog
+              - ${var.catalog}
+              - --bronze-schema
+              - ${var.schema}
+              - --bronze-table
+              - ${var.bronze_table}
+              - --silver-schema
+              - ${var.silver_schema}
+              - --silver-table
+              - ${var.silver_table}
+          environment_key: default
+          max_retries: 2
+          min_retry_interval_millis: 30000
+      environments:
+        - environment_key: default
+          spec:
+            environment_version: "4"

@@ -127,8 +127,8 @@ DELETE uses a soft-delete strategy:
 - operational metadata advances to the DELETE event.
 
 UNDELETE or a newer non-delete event sets `is_deleted = false` and clears
-`deleted_at`. The code path is implemented, but a real Salesforce DELETE was
-not performed in this phase and remains explicitly unvalidated.
+`deleted_at`. A real Salesforce DELETE was processed through the subscriber,
+Volume landing, Auto Loader Bronze, and Silver MERGE to validate this behavior.
 
 ## DAB Resource
 
@@ -151,6 +151,9 @@ schema/table. It is intentionally separate from the Bronze Job.
 - An Amount event produced the latest Amount while StageName remained the value
   from the latest StageName event.
 - A rerun without new Bronze events left both row count and state unchanged.
+- A real DELETE retained the Opportunity row and all last-known business
+  values, set `is_deleted`, populated `deleted_at`, and advanced operational
+  metadata to `last_change_type = DELETE`.
 
 Comparisons used non-reversible hashes and booleans so business values were not
 printed during validation.
@@ -185,7 +188,6 @@ FROM salesforce_realtime_lakehouse.silver.opportunity;
 ## Known Limitations
 
 - no initial Salesforce snapshot exists, so never-observed fields may be null;
-- DELETE behavior is implemented but not tested against a real delete;
 - the Job rebuilds current source state from all available Bronze events;
 - only six Opportunity business fields are modeled;
 - no reconciliation or data quality contract exists yet.

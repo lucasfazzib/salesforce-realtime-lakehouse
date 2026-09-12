@@ -43,7 +43,10 @@ Salesforce Developer Edition
 - [x] Silver Opportunity current-state table implemented
 - [x] Salesforce UPDATE reflected in Silver
 - [x] Silver idempotent rerun validated
-- [ ] Salesforce DELETE semantics validated
+- [x] Salesforce DELETE semantics validated
+- [x] Lakeflow Bronze to Silver orchestration implemented
+- [x] DAB Lakeflow workflow deployed
+- [x] End-to-end Bronze to Silver workflow validated
 
 ## Local CDC Test
 
@@ -77,6 +80,14 @@ Salesforce replay retention is limited, so this validates only a short outage.
 3. Query `salesforce_realtime_lakehouse.silver.opportunity`.
 4. Confirm the changed field was updated and unchanged fields were preserved.
 5. Rerun the Silver job and confirm there is still one row per Opportunity.
+
+## Lakeflow Workflow Test
+
+1. Start the local subscriber and create, update, or delete an Opportunity.
+2. Confirm the CDC event is persisted under `raw_events/opportunity/`.
+3. Run `./.venv/bin/python -m src.salesforce_cdc.databricks_upload`.
+4. Run `databricks bundle run -t dev salesforce_cdc_pipeline`.
+5. Validate Bronze history and the Silver current state with SQL.
 
 ## Documentation
 
