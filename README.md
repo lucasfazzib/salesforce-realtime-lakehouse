@@ -49,8 +49,8 @@ Salesforce Developer Edition
 - [x] End-to-end Bronze to Silver workflow validated
 - [x] DEV and PROD-SIMULATED bundle targets configured
 - [ ] GitHub pull request CI validated
-- [ ] GitHub DEV deployment validated
-- [ ] GitHub PROD-SIMULATED deployment validated
+- [x] GitHub DEV deployment validated
+- [x] GitHub PROD-SIMULATED deployment validated
 
 ## Local CDC Test
 
