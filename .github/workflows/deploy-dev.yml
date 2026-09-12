@@ -28,7 +28,7 @@ jobs:
         run: test "$GITHUB_REF" = "refs/heads/dev"
 
       - name: Check out repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Install Databricks CLI
         uses: databricks/setup-cli@v1.16.1
