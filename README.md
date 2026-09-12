@@ -48,7 +48,7 @@ Salesforce Developer Edition
 - [x] DAB Lakeflow workflow deployed
 - [x] End-to-end Bronze to Silver workflow validated
 - [x] DEV and PROD-SIMULATED bundle targets configured
-- [ ] GitHub pull request CI validated
+- [x] GitHub pull request CI validated
 - [x] GitHub DEV deployment validated
 - [x] GitHub PROD-SIMULATED deployment validated
 
